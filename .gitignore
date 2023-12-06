@@ -17,3 +17,8 @@ _build
 *.iml
 rebar3.crashdump
 *~
+
+.vscode
+.DS_Store
+cmake_marray
+priv
