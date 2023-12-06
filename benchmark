@@ -1,0 +1,117 @@
+#!/usr/bin/env escript
+%% -*- erlang -*-
+%%! -pa ./_build/default/lib/marray/ebin -Wall
+main([REPEAT_TIMES | ARRAY_LENGTH]) ->
+    try
+        R = list_to_integer(REPEAT_TIMES),
+        lists:foreach(
+            fun(X) ->
+                N = list_to_integer(X),
+                benchmark(N, R),
+                io:format("~n")
+            end,
+            ARRAY_LENGTH
+        )
+    catch
+        A:B ->
+            io:format("Error: ~p: ~p~n", [A, B]),
+            usage()
+    end;
+main(_) ->
+    usage().
+
+usage() ->
+    io:format("usage: benchmark REPEAT_TIMES [[ARRAY_LENGTH...]]~n"),
+    halt(1).
+
+generate_list(N) when N > 0 ->
+    generate_list(N, []).
+generate_list(0, Acc) ->
+    Acc;
+generate_list(N, Acc) ->
+    RandomInt = rand:uniform(100 * N),
+    generate_list(N - 1, [RandomInt | Acc]).
+
+benchmark(N, R) when N > 0 ->
+    io:format("Benchmarking with array length ~p~n", [N]),
+    Benchmark = fun(Fun) ->
+        {Time, _} = timer:tc(Fun, microsecond),
+        Time
+    end,
+    ElapsedTimes = lists:map(
+        fun(_I) ->
+            List = generate_list(N),
+            Marray = marray:from_list(List),
+            [
+              Benchmark(fun() -> benchmark_marray(Marray) end),
+              Benchmark(fun() -> benchmark_list(List) end)
+            ]
+        end,
+        lists:seq(1, R)
+    ),
+    [MarrayTimes, ListTimes] = lists:foldr(
+        fun([MarrayTime, ListTime], [MarrayTimes, ListTimes]) ->
+            [[MarrayTime| MarrayTimes],[ListTime | ListTimes]]
+        end,
+        [[], []],
+        ElapsedTimes
+    ),
+    MarrayAvg = lists:sum(MarrayTimes) / length(MarrayTimes),
+    ListAvg = lists:sum(ListTimes) / length(ListTimes),
+    MarrayMax = lists:max(MarrayTimes),
+    ListMax = lists:max(ListTimes),
+    MarrayMin = lists:min(MarrayTimes),
+    ListMin = lists:min(ListTimes),
+    MarrayStdDev = math:sqrt(lists:sum(lists:map(fun(X) -> math:pow(X - MarrayAvg, 2) end, MarrayTimes)) / length(MarrayTimes)),
+    ListStdDev = math:sqrt(lists:sum(lists:map(fun(X) -> math:pow(X - ListAvg, 2) end, ListTimes)) / length(ListTimes)),
+    MarrayStdDev1 = round(MarrayStdDev * 100) / 100,
+    ListStdDev1 = round(ListStdDev * 100) / 100,
+    io:format("Marray: avg=~p, max=~p, min=~p, stddev=~p~n", [MarrayAvg, MarrayMax, MarrayMin, MarrayStdDev1]),
+    io:format("List:   avg=~p, max=~p, min=~p, stddev=~p~n", [ListAvg, ListMax, ListMin, ListStdDev1]),
+    ok;
+benchmark(_, _) ->
+    usage().
+
+benchmark_marray(Marray) ->
+    quicksort(Marray),
+    ok.
+
+quicksort(Marray) ->
+    R = marray:size(Marray) - 1,
+    quicksort(Marray, 0, R).
+
+quicksort(Marray, L, R) when L < R ->
+    PivotIndex = partition(Marray, L, R),
+    quicksort(Marray, L, PivotIndex - 1),
+    quicksort(Marray, PivotIndex + 1, R);
+quicksort(Marray, _L, _R) ->
+    Marray.
+
+partition(Marray, L, R) ->
+    Pivot = marray:get(Marray, R),
+    Indices = lists:seq(L, R - 1),
+    I = lists:foldr(
+        fun(Index, I) ->
+            Val = marray:get(Marray, Index),
+            case Val < Pivot of
+                true ->
+                    marray:swap(Marray, I + 1, Index),
+                    I + 1;
+                false ->
+                    I
+            end
+        end,
+        L - 1,
+        Indices
+    ),
+    marray:swap(Marray, I + 1, R),
+    I + 1.
+
+benchmark_list(List) ->
+    qsort(List),
+    ok.
+
+qsort([]) ->
+    [];
+qsort([Pivot | T]) ->
+    qsort([X || X <- T, X < Pivot]) ++ [Pivot] ++ qsort([X || X <- T, X >= Pivot]).
