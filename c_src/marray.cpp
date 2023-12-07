@@ -132,7 +132,7 @@ static ERL_NIF_TERM marray_set(ErlNifEnv *env, int argc,
   }
   if (index >= array->val->size()) {
     error = erlang::nif::error(env, "index out of bounds");
-    return error;
+    return enif_raise_exception(env, error);
   }
   array->val->_data[index] = argv[2];
 
@@ -156,10 +156,10 @@ static ERL_NIF_TERM marray_get(ErlNifEnv *env, int argc,
   }
   if (index >= array->val->size()) {
     error = erlang::nif::error(env, "index out of bounds");
-    return error;
+    return enif_raise_exception(env, error);
   }
 
-  return erlang::nif::ok(env, array->val->_data[index]);
+  return array->val->_data[index];
 }
 
 static ERL_NIF_TERM marray_swap(ErlNifEnv *env, int argc,
