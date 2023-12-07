@@ -48,7 +48,7 @@ benchmark(N, R) when N > 0 ->
             List = generate_list(N),
             Marray = marray:from_list(List),
             %% Assert the results match
-            true = (marray:to_list(benchmark_marray(Marray)) =:= benchmark_list(List)),
+            true = (marray:to_list(benchmark_marray(marray:from_list(List))) =:= benchmark_list(List)),
             [
               Benchmark(fun() -> benchmark_marray(Marray) end),
               Benchmark(fun() -> benchmark_list(List) end)
@@ -95,18 +95,18 @@ quicksort(Marray, _L, _R) ->
 
 partition(Marray, L, R) ->
     Pivot = marray:get(Marray, R),
-    I = partition(R - 1, L, L - 1, Pivot, Marray),
+    I = partition(R, L, L - 1, Pivot, Marray),
     marray:swap(Marray, I + 1, R),
     I + 1.
 
-partition(R, L, I, Pivot, Marray) when R >= L ->
-    Val = marray:get(Marray, R),
+partition(R, L, I, Pivot, Marray) when L =< R ->
+    Val = marray:get(Marray, L),
     case Val < Pivot of
         true ->
-            marray:swap(Marray, I + 1, R),
-            partition(R - 1, L, I + 1, Pivot, Marray);
+            marray:swap(Marray, I + 1, L),
+            partition(R, L + 1, I + 1, Pivot, Marray);
         false ->
-            partition(R - 1, L, I, Pivot, Marray)
+            partition(R, L + 1, I, Pivot, Marray)
     end;
 partition(_R, _L, I, _Pivot, _Marray) ->
     I.
