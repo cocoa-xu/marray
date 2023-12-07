@@ -9,7 +9,7 @@ end
 
 Code.prepend_path(path)
 
-l1k = Enum.map(1..1000, fn _ -> :rand.uniform() end)
+l1k = Enum.map(1..10000, fn _ -> :rand.uniform() end)
 
 defmodule QSort do
   def immutable([]),

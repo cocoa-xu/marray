@@ -12,13 +12,14 @@
 
 class marray {
 public:
-  std::vector<ERL_NIF_TERM> _data;
+  using storage_type = std::vector<double>;
+  storage_type _data;
   marray(size_t capacity, ERL_NIF_TERM default_value) {
-    this->_data = std::vector<ERL_NIF_TERM>(capacity, default_value);
+    this->_data = storage_type(capacity, 0);
   }
 
   marray(size_t capacity) {
-    this->_data = std::vector<ERL_NIF_TERM>();
+    this->_data = storage_type();
     this->_data.resize(capacity);
   }
 
@@ -84,10 +85,15 @@ static ERL_NIF_TERM marray_from_list(ErlNifEnv *env, int argc,
   res->val = new marray((size_t)n);
 
   ERL_NIF_TERM head, tail, obj = argv[0];
+  double v;
   size_t i = 0;
   while (i < n) {
       if (enif_get_list_cell(env, obj, &head, &tail)) {
-          res->val->_data[i] = head;
+          if (!erlang::nif::get(env, head, &v)) {
+            return enif_raise_exception(env, 
+              erlang::nif::error(env, "cannot access some elements in the list\n"));
+          }
+          res->val->_data[i] = v;
           obj = tail;
           i++;
       } else {
@@ -107,12 +113,14 @@ static ERL_NIF_TERM marray_to_list(ErlNifEnv *env, int argc,
   ERL_NIF_TERM error{};
   marray_res * array = nullptr;
   if (!enif_get_resource(env, argv[0], marray_res::type, reinterpret_cast<void **>(&array)) ||
-      array == nullptr) {
+      array == nullptr || array->val == nullptr) {
     error = erlang::nif::error(env, "cannot access Nif resource");
     return enif_raise_exception(env, error);
   }
 
-  return enif_make_list_from_array(env, array->val->data(), (unsigned)array->val->size());
+  erlang::nif::make_f64_list_from_c_array(env, array->val->size(), array->val->data(), ret);
+
+  return ret;
 }
 
 static ERL_NIF_TERM marray_set(ErlNifEnv *env, int argc,
@@ -121,7 +129,7 @@ static ERL_NIF_TERM marray_set(ErlNifEnv *env, int argc,
   ERL_NIF_TERM error{};
   marray_res * array = nullptr;
   if (!enif_get_resource(env, argv[0], marray_res::type, reinterpret_cast<void **>(&array)) ||
-      array == nullptr) {
+      array == nullptr || array->val == nullptr) {
     error = erlang::nif::error(env, "cannot access Nif resource");
     return enif_raise_exception(env, error);
   }
@@ -134,7 +142,12 @@ static ERL_NIF_TERM marray_set(ErlNifEnv *env, int argc,
     error = erlang::nif::error(env, "index out of bounds");
     return error;
   }
-  array->val->_data[index] = argv[2];
+  double v;
+  if (!erlang::nif::get(env, argv[2], &v)) {
+    return enif_raise_exception(env, 
+      erlang::nif::error(env, "cannot access some elements in the list\n"));
+  }
+  array->val->_data[index] = v;
 
   return erlang::nif::ok(env);
 }
@@ -145,7 +158,7 @@ static ERL_NIF_TERM marray_get(ErlNifEnv *env, int argc,
   ERL_NIF_TERM error{};
   marray_res * array = nullptr;
   if (!enif_get_resource(env, argv[0], marray_res::type, reinterpret_cast<void **>(&array)) ||
-      array == nullptr) {
+      array == nullptr || array->val == nullptr) {
     error = erlang::nif::error(env, "cannot access Nif resource");
     return enif_raise_exception(env, error);
   }
@@ -159,7 +172,7 @@ static ERL_NIF_TERM marray_get(ErlNifEnv *env, int argc,
     return error;
   }
 
-  return erlang::nif::ok(env, array->val->_data[index]);
+  return erlang::nif::ok(env, enif_make_uint64(env, array->val->_data[index]));
 }
 
 static ERL_NIF_TERM marray_swap(ErlNifEnv *env, int argc,
@@ -168,7 +181,7 @@ static ERL_NIF_TERM marray_swap(ErlNifEnv *env, int argc,
   ERL_NIF_TERM error{};
   marray_res * array = nullptr;
   if (!enif_get_resource(env, argv[0], marray_res::type, reinterpret_cast<void **>(&array)) ||
-      array == nullptr) {
+      array == nullptr || array->val == nullptr) {
     error = erlang::nif::error(env, "cannot access Nif resource");
     return enif_raise_exception(env, error);
   }
@@ -182,7 +195,10 @@ static ERL_NIF_TERM marray_swap(ErlNifEnv *env, int argc,
     return error;
   }
 
-  std::swap(array->val->_data[index_i], array->val->_data[index_j]);
+  ERL_NIF_TERM t = array->val->_data[index_i];
+  array->val->_data[index_i] = array->val->_data[index_j];
+  array->val->_data[index_j] = t;
+  // std::swap(array->val->_data[index_i], array->val->_data[index_j]);
   return erlang::nif::ok(env);
 }
 
@@ -192,7 +208,7 @@ static ERL_NIF_TERM marray_size(ErlNifEnv *env, int argc,
   ERL_NIF_TERM error{};
   marray_res * array = nullptr;
   if (!enif_get_resource(env, argv[0], marray_res::type, reinterpret_cast<void **>(&array)) ||
-      array == nullptr) {
+      array == nullptr || array->val == nullptr) {
     error = erlang::nif::error(env, "cannot access Nif resource");
     return enif_raise_exception(env, error);
   }
