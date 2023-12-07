@@ -13,8 +13,8 @@ main([REPEAT_TIMES | ARRAY_LENGTH]) ->
             ARRAY_LENGTH
         )
     catch
-        A:B ->
-            io:format("Error: ~p: ~p~n", [A, B]),
+        A:B:C ->
+            io:format("Error: ~p: ~p~n~p~n", [A, B, C]),
             usage()
     end;
 main(_) ->
@@ -35,13 +35,20 @@ generate_list(N, Acc) ->
 benchmark(N, R) when N > 0 ->
     io:format("Benchmarking with array length ~p~n", [N]),
     Benchmark = fun(Fun) ->
-        {Time, _} = timer:tc(Fun, microsecond),
-        Time
+        {_Pid, Ref} = spawn_monitor(fun() ->
+            {Time, _} = timer:tc(Fun, []),
+            exit(Time)
+        end),
+        receive
+          {'DOWN', Ref, _, _, Time} -> Time
+        end
     end,
     ElapsedTimes = lists:map(
         fun(_I) ->
             List = generate_list(N),
             Marray = marray:from_list(List),
+            %% Assert the results match
+            true = (marray:to_list(benchmark_marray(Marray)) =:= benchmark_list(List)),
             [
               Benchmark(fun() -> benchmark_marray(Marray) end),
               Benchmark(fun() -> benchmark_list(List) end)
@@ -73,8 +80,7 @@ benchmark(_, _) ->
     usage().
 
 benchmark_marray(Marray) ->
-    quicksort(Marray),
-    ok.
+    quicksort(Marray).
 
 quicksort(Marray) ->
     R = marray:size(Marray) - 1,
@@ -89,27 +95,24 @@ quicksort(Marray, _L, _R) ->
 
 partition(Marray, L, R) ->
     Pivot = marray:get(Marray, R),
-    Indices = lists:seq(L, R - 1),
-    I = lists:foldr(
-        fun(Index, I) ->
-            Val = marray:get(Marray, Index),
-            case Val < Pivot of
-                true ->
-                    marray:swap(Marray, I + 1, Index),
-                    I + 1;
-                false ->
-                    I
-            end
-        end,
-        L - 1,
-        Indices
-    ),
+    I = partition(R - 1, L, L - 1, Pivot, Marray),
     marray:swap(Marray, I + 1, R),
     I + 1.
 
+partition(R, L, I, Pivot, Marray) when R >= L ->
+    Val = marray:get(Marray, R),
+    case Val < Pivot of
+        true ->
+            marray:swap(Marray, I + 1, R),
+            partition(R - 1, L, I + 1, Pivot, Marray);
+        false ->
+            partition(R - 1, L, I, Pivot, Marray)
+    end;
+partition(_R, _L, I, _Pivot, _Marray) ->
+    I.
+
 benchmark_list(List) ->
-    qsort(List),
-    ok.
+    qsort(List).
 
 qsort([]) ->
     [];
