@@ -172,7 +172,7 @@ static ERL_NIF_TERM marray_get(ErlNifEnv *env, int argc,
     return error;
   }
 
-  return erlang::nif::ok(env, enif_make_uint64(env, array->val->_data[index]));
+  return erlang::nif::ok(env, enif_make_double(env, array->val->_data[index]));
 }
 
 static ERL_NIF_TERM marray_swap(ErlNifEnv *env, int argc,
