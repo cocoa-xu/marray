@@ -80,11 +80,54 @@ benchmark(_, _) ->
     usage().
 
 benchmark_marray(Marray) ->
-    quicksort(Marray).
+    sort(Marray, marray:size(Marray)).
 
-quicksort(Marray) ->
-    R = marray:size(Marray) - 1,
-    quicksort(Marray, 0, R).
+sort(Marray, 0) ->
+    Marray;
+sort(Marray, 1) ->
+    Marray;
+sort(Marray, 2) ->
+    Val1 = marray:get(Marray, 0),
+    Val2 = marray:get(Marray, 1),
+    case Val1 < Val2 of
+        true ->
+            Marray;
+        false ->
+            marray:swap(Marray, 0, 1)
+    end;
+sort(Marray, 3) ->
+    Val1 = marray:get(Marray, 0),
+    Val2 = marray:get(Marray, 1),
+    Val3 = marray:get(Marray, 2),
+    case Val1 < Val2 of
+        true ->
+            case Val2 < Val3 of
+                true ->
+                    Marray;
+                false ->
+                    case Val1 < Val3 of
+                        true ->
+                            marray:swap(Marray, 1, 2);
+                        false ->
+                            marray:swap(Marray, 0, 2)
+                    end
+            end;
+        false ->
+            case Val1 < Val3 of
+                true ->
+                    marray:swap(Marray, 0, 1);
+                false ->
+                    case Val2 < Val3 of
+                        true ->
+                            marray:swap(Marray, 0, 2);
+                        false ->
+                            marray:swap(Marray, 0, 1),
+                            marray:swap(Marray, 1, 2)
+                    end
+            end
+    end;
+sort(Marray, N) ->
+    quicksort(Marray, 0, N - 1).
 
 quicksort(Marray, L, R) when L < R ->
     PivotIndex = partition(Marray, L, R),
@@ -94,7 +137,47 @@ quicksort(Marray, _L, _R) ->
     Marray.
 
 partition(Marray, L, R) ->
-    Pivot = marray:get(Marray, R),
+    Pivot = case R - L of
+        0 ->
+            marray:get(Marray, R);
+        1 ->
+            marray:get(Marray, R);
+        _ ->
+            P = L + round((R - L) / 2),
+            Val1 = marray:get(Marray, L),
+            Val2 = marray:get(Marray, P),
+            Val3 = marray:get(Marray, R),
+            case Val1 < Val2 of
+                true ->
+                    case Val2 < Val3 of
+                        true ->
+                            marray:swap(Marray, P, R),
+                            Val2;
+                        false ->
+                            case Val1 < Val3 of
+                                true ->
+                                    Val3;
+                                false ->
+                                    marray:swap(Marray, L, R),
+                                    Val1
+                            end
+                    end;
+                false ->
+                    case Val1 < Val3 of
+                        true ->
+                            marray:swap(Marray, L, R),
+                            Val1;
+                        false ->
+                            case Val2 < Val3 of
+                                true ->
+                                    marray:get(Marray, R);
+                                false ->
+                                    marray:swap(Marray, P, R),
+                                    Val2
+                            end
+                    end
+            end
+    end,
     I = partition(R, L, L - 1, Pivot, Marray),
     marray:swap(Marray, I + 1, R),
     I + 1.
