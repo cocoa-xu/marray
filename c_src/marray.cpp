@@ -3,6 +3,7 @@
 #include <vector>
 #include <algorithm>
 #include <memory>
+#include <stdexcept>
 #include "nif_utils.hpp"
 
 #ifdef __GNUC__
