@@ -8,6 +8,30 @@ C++ implemented mutable array for BEAM.
 $ rebar3 compile
 ```
 
+## Usage
+
+```erlang
+M1 = marray:new(10, default).
+[0,0,0,0,0,0,0,0,0,0] = marray:to_list(M1).
+10 = marray:size(M1).
+
+M2 = marray:from_list([1,2,3,4,5,6,7,8]).
+[1,2,3,4,5,6,7,8] = marray:to_list(M2).
+8 = marray:size(M2).
+
+ok = marray:set(M1, 2, 3).
+[0,0,3,0,0,0,0,0,0,0] = marray:to_list(M1).
+
+{ok, 6} = marray:get(M2, 5).
+
+ok = marray:swap(M2, 0, 7).
+[8,2,3,4,5,6,7,1] = marray:to_list(M2).
+
+[1,2,3,4,5,6,7,8] = marray:to_list(marray:sort(M2)).
+
+[1,4,7] = marray:to_list(marray:stride_view(M2, 3)).
+```
+
 ## Quick Benchmark
 
 The following results were obtained from a MacBook Pro with M2 Max.
@@ -55,26 +79,4 @@ Benchmarking with array length 30000
 Marray(erlang): avg=1769281.4, max=2026156, min=1693883, stddev=92459.68
 Marray(c):      avg=102.5, max=116, min=99, stddev=4.88
 List:           avg=3364.2, max=3959, min=3073, stddev=242.22
-```
-
-## Usage
-
-```erlang
-M1 = marray:new(10, default).
-[0,0,0,0,0,0,0,0,0,0] = marray:to_list(M1).
-10 = marray:size(M1).
-
-M2 = marray:from_list([1,2,3,4,5,6,7,8]).
-[1,2,3,4,5,6,7,8] = marray:to_list(M2).
-8 = marray:size(M2).
-
-ok = marray:set(M1, 2, 3).
-[0,0,3,0,0,0,0,0,0,0] = marray:to_list(M1).
-
-{ok, 6} = marray:get(M2, 5).
-
-ok = marray:swap(M2, 0, 7).
-[8,2,3,4,5,6,7,1] = marray:to_list(M2).
-
-[1,2,3,4,5,6,7,8] = marray:to_list(marray:sort(M2)).
 ```
