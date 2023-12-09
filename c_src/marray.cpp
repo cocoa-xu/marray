@@ -163,6 +163,14 @@ public:
       m_index = old;
       return temp;
     }
+
+    MarrayIterator operator+(const int movement) {
+      auto old = m_index;
+      m_index += movement;
+      auto temp(*this);
+      m_index = old;
+      return temp;
+    }
     
     MarrayIterator operator-(const difference_type& movement) {
       auto old = m_index;
