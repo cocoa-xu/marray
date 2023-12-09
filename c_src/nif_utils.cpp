@@ -17,7 +17,7 @@ int get_atom(ErlNifEnv *env, ERL_NIF_TERM term, std::string &var) {
 
     var.resize(atom_length + 1);
 
-    if (!enif_get_atom(env, term, &(*(var.begin())), var.size(), ERL_NIF_LATIN1)) {
+    if (!enif_get_atom(env, term, &(*(var.begin())), (unsigned int)var.size(), ERL_NIF_LATIN1)) {
         return 0;
     }
 
@@ -130,7 +130,7 @@ int get(ErlNifEnv *env, ERL_NIF_TERM term, std::string &var) {
     }
 
     var.resize(len + 1);
-    ret = enif_get_string(env, term, &*(var.begin()), var.size(), ERL_NIF_LATIN1);
+    ret = enif_get_string(env, term, &*(var.begin()), (unsigned int)var.size(), ERL_NIF_LATIN1);
 
     if (ret > 0) {
         var.resize(ret - 1);

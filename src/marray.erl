@@ -14,7 +14,8 @@
     swap/3,
     size/1,
     sort/1,
-    reverse/1
+    reverse/1,
+    stride_view/2
 ]).
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -56,6 +57,9 @@ sort(MArray) ->
 
 reverse(MArray) ->
     marray_nif:marray_reverse(MArray).
+
+stride_view(MArray, Stride) ->
+    marray_nif:marray_stride_view(MArray, Stride).
 
 -ifdef(EUNIT).
 new_test() ->
@@ -129,5 +133,30 @@ reverse_test() ->
     M = from_list(List),
     marray:reverse(M),
     ?assertEqual(marray:to_list(M), lists:reverse(List)).
+
+stride_view_test() ->
+    List = [1, 2, 3, 4, 5],
+    M = from_list(List),
+    M1 = stride_view(M, 2),
+    ?assertEqual(marray:size(M1), 3),
+    ?assertEqual(marray:to_list(M1), [1, 3, 5]),
+    M2 = stride_view(M, 3),
+    ?assertEqual(marray:size(M2), 2),
+    ?assertEqual(marray:to_list(M2), [1, 4]),
+    M3 = stride_view(M, 4),
+    ?assertEqual(marray:size(M3), 2),
+    ?assertEqual(marray:to_list(M3), [1, 5]),
+    M4 = stride_view(M, 5),
+    ?assertEqual(marray:size(M4), 1),
+    ?assertEqual(marray:to_list(M4), [1]),
+    M5 = stride_view(M, 6),
+    ?assertEqual(marray:size(M5), 1),
+    ?assertEqual(marray:to_list(M5), [1]),
+    M6 = stride_view(M, 7),
+    ?assertEqual(marray:size(M6), 1),
+    ?assertEqual(marray:to_list(M6), [1]),
+    M7 = stride_view(M, -1),
+    ?assertEqual(marray:size(M7), 5),
+    ?assertEqual(marray:to_list(M7), [5,4,3,2,1]).
 
 -endif.

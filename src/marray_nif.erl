@@ -50,3 +50,6 @@ marray_sort(_Marray) ->
 
 marray_reverse(_Marray) ->
     not_loaded(?LINE).
+
+marray_stride_view(_Marray, _Stride) ->
+    not_loaded(?LINE).
