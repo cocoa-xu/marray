@@ -47,3 +47,6 @@ marray_size(_Marray) ->
 
 marray_sort(_Marray) ->
     not_loaded(?LINE).
+
+marray_reverse(_Marray) ->
+    not_loaded(?LINE).

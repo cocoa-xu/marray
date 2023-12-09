@@ -12,7 +12,8 @@
     get/2,
     swap/3,
     size/1,
-    sort/1
+    sort/1,
+    reverse/1
 ]).
 
 new(Capacity, DefaultVal) ->
@@ -45,3 +46,6 @@ size(MArray) ->
 
 sort(MArray) ->
     marray_nif:marray_sort(MArray).
+
+reverse(MArray) ->
+    marray_nif:marray_reverse(MArray).

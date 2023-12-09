@@ -217,6 +217,21 @@ static ERL_NIF_TERM marray_sort(ErlNifEnv *env, int argc,
   return argv[0];
 }
 
+static ERL_NIF_TERM marray_reverse(ErlNifEnv *env, int argc,
+                               const ERL_NIF_TERM argv[]) {
+  ERL_NIF_TERM ret{};
+  ERL_NIF_TERM error{};
+  marray_res * array = nullptr;
+  if (!enif_get_resource(env, argv[0], marray_res::type, reinterpret_cast<void **>(&array)) ||
+      array == nullptr) {
+    error = erlang::nif::error(env, "cannot access Nif resource");
+    return enif_raise_exception(env, error);
+  }
+
+  array->val->_data.reverse();
+  return argv[0];
+}
+
 static int on_load(ErlNifEnv *env, void **, ERL_NIF_TERM) {
   ErlNifResourceType *rt;
   rt = enif_open_resource_type(env, "marray_nif", "marray",
@@ -239,7 +254,8 @@ static ErlNifFunc nif_functions[] = {
     {"marray_get", 2, marray_get, 0},
     {"marray_swap", 3, marray_swap, 0},
     {"marray_size", 1, marray_size, 0},
-    {"marray_sort", 1, marray_sort, 0}
+    {"marray_sort", 1, marray_sort, 0},
+    {"marray_reverse", 1, marray_reverse, 0}
 };
 
 ERL_NIF_INIT(marray_nif, nif_functions, on_load, on_reload, on_upgrade, NULL);
