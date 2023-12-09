@@ -1,0 +1,51 @@
+name: macos
+
+on:
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - '.github/workflows/linux.yml'
+      - '.github/workflows/windows.yml'
+      - '.github/workflows/precompile.yml'
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**/*.md'
+      - '.github/workflows/linux.yml'
+      - '.github/workflows/windows.yml'
+      - '.github/workflows/precompile.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mix_test:
+    if: "!contains(github.event.pull_request.labels.*.name, 'skip ci')"
+    runs-on: macos-latest
+    env:
+      MIX_ENV: test
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: macOS setup
+        run: |
+          brew install erlang elixir
+          mix local.hex --force
+          mix local.rebar --force
+          wget https://s3.amazonaws.com/rebar3/rebar3 && chmod +x rebar3
+          ./rebar3 local install
+
+      - name: rebar3 compile
+        run: |
+          export PATH="~/.cache/rebar3/bin:$PATH"
+
+          rebar3 deps
+          rebar3 compile
+
+      - name: EUnit Test
+        run: |
+          export PATH="~/.cache/rebar3/bin:$PATH"
+          rebar3 eunit
