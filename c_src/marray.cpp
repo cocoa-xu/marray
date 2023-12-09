@@ -13,6 +13,11 @@
 #pragma GCC diagnostic ignored "-Wunused-function"
 #endif
 
+#if defined(_MSC_VER)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+
 class marray {
 private:
   void compute_new_size() {
