@@ -55,11 +55,13 @@ install(
     DESTINATION "${PRIV_DIR}"
 )
 set_target_properties(marray_nif PROPERTIES PREFIX "")
-set_target_properties(marray_nif PROPERTIES SUFFIX ".so")
-set_target_properties(marray_nif PROPERTIES
-    INSTALL_RPATH_USE_LINK_PATH TRUE
-    BUILD_WITH_INSTALL_RPATH TRUE
-)
+if(UNIX)
+    set_target_properties(marray_nif PROPERTIES SUFFIX ".so")
+    set_target_properties(marray_nif PROPERTIES
+        INSTALL_RPATH_USE_LINK_PATH TRUE
+        BUILD_WITH_INSTALL_RPATH TRUE
+    )
+endif()
 
 if(WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} $ENV{CFLAGS} /O2 /EHsc /bigobj /wd4996 /wd4267 /wd4068")
