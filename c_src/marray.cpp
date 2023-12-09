@@ -33,7 +33,7 @@ public:
   using element_t = ERL_NIF_TERM;
   using array_t = std::vector<element_t>;
   std::shared_ptr<array_t> _data;
-  
+
   // semi-open intervals
   size_t _lowerbound;
   size_t _upperbound;
@@ -56,7 +56,7 @@ public:
     this->_stride = 1;
     this->_size = capacity;
   }
-  
+
   marray(const marray * other) {
     this->_data = other->_data;
     this->_lowerbound = other->_lowerbound;
@@ -64,7 +64,7 @@ public:
     this->_stride = other->_stride;
     this->_size = other->_size;
   }
-  
+
   marray * with_stride(ssize_t new_stride) {
     if (new_stride == 0) {
       throw std::runtime_error("stride should not be zero");
@@ -85,14 +85,14 @@ public:
     }
     return _data->operator[](_lowerbound + n * _stride);
   }
-  
+
   const element_t& at(size_t n) const {
     if (_stride < 0) {
       return _data->operator[](_upperbound - 1 + n * _stride);
     }
     return _data->operator[](_lowerbound + n * _stride);
   }
-  
+
   class MarrayIterator {
   public:
     using iterator_category = std::random_access_iterator_tag;
@@ -126,7 +126,7 @@ public:
     bool operator==(const MarrayIterator& iterator) const {
       return (m_ptr == iterator.m_ptr && m_index == iterator.m_index);
     }
-    
+
     bool operator!=(const MarrayIterator& iterator) const {
       return (m_ptr != iterator.m_ptr || m_index != iterator.m_index);
     }
@@ -135,12 +135,12 @@ public:
       m_index += movement;
       return (*this);
     }
-    
+
     MarrayIterator& operator-=(const difference_type& movement) {
       m_index -= movement;
       return (*this);
     }
-    
+
     MarrayIterator& operator++(){
       ++m_index;
       return (*this);
@@ -154,13 +154,13 @@ public:
       ++m_index;
       return temp;
     }
-    
+
     MarrayIterator operator--(int){
       auto temp(*this);
       --m_index;
       return temp;
     }
-    
+
     MarrayIterator operator+(const difference_type& movement) {
       auto old = m_index;
       m_index += movement;
@@ -176,7 +176,7 @@ public:
       m_index = old;
       return temp;
     }
-    
+
     MarrayIterator operator-(const difference_type& movement) {
       auto old = m_index;
       m_index -= movement;
@@ -192,7 +192,7 @@ public:
     element_t& operator*() {
       return m_ptr->at(m_index);
     }
-    
+
     const element_t& operator*() const {
       return m_ptr->at(m_index);
     }
@@ -200,21 +200,21 @@ public:
     marray * m_ptr;
     ssize_t m_index;
   };
-  
+
   void reverse() {
     int size = this->size();
     for (size_t i = 0; i < size / 2; ++i) {
         std::swap(this->at(i), this->at(size - i - 1));
     }
   }
-  
+
   typedef MarrayIterator iterator;
-  
+
   iterator begin() {
     return iterator(this);
   }
-      
-  iterator end(){
+
+  iterator end() {
     return iterator(this, _size);
   }
 };
@@ -260,7 +260,7 @@ static ERL_NIF_TERM marray_from_list(ErlNifEnv *env, int argc,
                                const ERL_NIF_TERM argv[]) {
   ERL_NIF_TERM ret{};
   ERL_NIF_TERM error{};
-  
+
   unsigned n = 0;
   enif_get_list_length(env, argv[0], &n);
 
@@ -279,7 +279,7 @@ static ERL_NIF_TERM marray_from_list(ErlNifEnv *env, int argc,
           obj = tail;
           i++;
       } else {
-        return enif_raise_exception(env, 
+        return enif_raise_exception(env,
           erlang::nif::error(env, "cannot access some elements in the list\n"));
       }
   }
@@ -447,14 +447,14 @@ static ERL_NIF_TERM marray_stride_view(ErlNifEnv *env, int argc,
   if (!erlang::nif::get(env, argv[1], &new_stride) || new_stride == 0) {
     return enif_make_badarg(env);
   }
-  
+
   marray_res * res = static_cast<marray_res *>(enif_alloc_resource(marray_res::type, sizeof(marray_res)));
   if (res == nullptr) {
     error = erlang::nif::error(env, "cannot allocate Nif resource");
     return enif_raise_exception(env, error);
   }
   res->val = array->val->with_stride(new_stride);
-  
+
   ret = enif_make_resource(env, res);
   enif_release_resource(res);
   return ret;
