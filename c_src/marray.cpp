@@ -96,10 +96,10 @@ public:
   class MarrayIterator {
   public:
     using iterator_category = std::random_access_iterator_tag;
-    using value_type = element_t;
+    using value_type = ERL_NIF_TERM;
     using difference_type = std::ptrdiff_t;
-    using pointer = element_t*;
-    using reference = element_t&;
+    using pointer = ERL_NIF_TERM*;
+    using reference = ERL_NIF_TERM&;
 
   public:
     MarrayIterator(marray * ptr = nullptr, size_t index = 0){
