@@ -48,39 +48,48 @@ benchmark(N, R) when N > 0 ->
             List = generate_list(N),
             Marray = marray:from_list(List),
             %% Assert the results match
-            true = (marray:to_list(benchmark_marray(marray:from_list(List))) =:= benchmark_list(List)),
+            true = (marray:to_list(benchmark_marray(marray:from_list(List), c_sort)) =:= benchmark_list(List)),
             [
-              Benchmark(fun() -> benchmark_marray(Marray) end),
+              Benchmark(fun() -> benchmark_marray(Marray, erlang) end),
+              Benchmark(fun() -> benchmark_marray(Marray, c_sort) end),
               Benchmark(fun() -> benchmark_list(List) end)
             ]
         end,
         lists:seq(1, R)
     ),
-    [MarrayTimes, ListTimes] = lists:foldr(
-        fun([MarrayTime, ListTime], [MarrayTimes, ListTimes]) ->
-            [[MarrayTime| MarrayTimes],[ListTime | ListTimes]]
+    [MarrayErlangTimes, MarrayCTimes, ListTimes] = lists:foldr(
+        fun([MarrayErlangTime, MarrayCTime, ListTime], [MarrayErlangTimes, MarrayCTimes, ListTimes]) ->
+            [[MarrayErlangTime | MarrayErlangTimes], [MarrayCTime | MarrayCTimes],[ListTime | ListTimes]]
         end,
-        [[], []],
+        [[], [], []],
         ElapsedTimes
     ),
-    MarrayAvg = lists:sum(MarrayTimes) / length(MarrayTimes),
+    MarrayErlangAvg = lists:sum(MarrayErlangTimes) / length(MarrayErlangTimes),
+    MarrayCAvg = lists:sum(MarrayCTimes) / length(MarrayCTimes),
     ListAvg = lists:sum(ListTimes) / length(ListTimes),
-    MarrayMax = lists:max(MarrayTimes),
+    MarrayErlangMax = lists:max(MarrayErlangTimes),
+    MarrayCMax = lists:max(MarrayCTimes),
     ListMax = lists:max(ListTimes),
-    MarrayMin = lists:min(MarrayTimes),
+    MarrayErlangMin = lists:min(MarrayErlangTimes),
+    MarrayCMin = lists:min(MarrayCTimes),
     ListMin = lists:min(ListTimes),
-    MarrayStdDev = math:sqrt(lists:sum(lists:map(fun(X) -> math:pow(X - MarrayAvg, 2) end, MarrayTimes)) / length(MarrayTimes)),
+    MarrayErlangStdDev = math:sqrt(lists:sum(lists:map(fun(X) -> math:pow(X - MarrayErlangAvg, 2) end, MarrayErlangTimes)) / length(MarrayErlangTimes)),
+    MarrayCStdDev = math:sqrt(lists:sum(lists:map(fun(X) -> math:pow(X - MarrayCAvg, 2) end, MarrayCTimes)) / length(MarrayCTimes)),
     ListStdDev = math:sqrt(lists:sum(lists:map(fun(X) -> math:pow(X - ListAvg, 2) end, ListTimes)) / length(ListTimes)),
-    MarrayStdDev1 = round(MarrayStdDev * 100) / 100,
+    MarrayErlangStdDev1 = round(MarrayErlangStdDev * 100) / 100,
+    MarrayCStdDev1 = round(MarrayCStdDev * 100) / 100,
     ListStdDev1 = round(ListStdDev * 100) / 100,
-    io:format("Marray: avg=~p, max=~p, min=~p, stddev=~p~n", [MarrayAvg, MarrayMax, MarrayMin, MarrayStdDev1]),
-    io:format("List:   avg=~p, max=~p, min=~p, stddev=~p~n", [ListAvg, ListMax, ListMin, ListStdDev1]),
+    io:format("Marray(erlang): avg=~p, max=~p, min=~p, stddev=~p~n", [MarrayErlangAvg, MarrayErlangMax, MarrayErlangMin, MarrayErlangStdDev1]),
+    io:format("Marray(c):      avg=~p, max=~p, min=~p, stddev=~p~n", [MarrayCAvg, MarrayCMax, MarrayCMin, MarrayCStdDev1]),
+    io:format("List:           avg=~p, max=~p, min=~p, stddev=~p~n", [ListAvg, ListMax, ListMin, ListStdDev1]),
     ok;
 benchmark(_, _) ->
     usage().
 
-benchmark_marray(Marray) ->
-    sort(Marray, marray:size(Marray)).
+benchmark_marray(Marray, erlang) ->
+    sort(Marray, marray:size(Marray));
+benchmark_marray(Marray, c_sort) ->
+    marray:sort(Marray).
 
 sort(Marray, 0) ->
     Marray;
@@ -195,9 +204,4 @@ partition(_R, _L, I, _Pivot, _Marray) ->
     I.
 
 benchmark_list(List) ->
-    qsort(List).
-
-qsort([]) ->
-    [];
-qsort([Pivot | T]) ->
-    qsort([X || X <- T, X < Pivot]) ++ [Pivot] ++ qsort([X || X <- T, X >= Pivot]).
+    lists:sort(List).
