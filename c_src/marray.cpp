@@ -1,6 +1,7 @@
 #include <erl_nif.h>
 #include <cstdint>
 #include <vector>
+#include <algorithm>
 #include "nif_utils.hpp"
 
 #ifdef __GNUC__
