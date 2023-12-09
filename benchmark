@@ -13,8 +13,8 @@ main([REPEAT_TIMES | ARRAY_LENGTH]) ->
             ARRAY_LENGTH
         )
     catch
-        A:B ->
-            io:format("Error: ~p: ~p~n", [A, B]),
+        A:B:C ->
+            io:format("Error: ~p: ~p~n~p~n", [A, B, C]),
             usage()
     end;
 main(_) ->
@@ -35,50 +35,108 @@ generate_list(N, Acc) ->
 benchmark(N, R) when N > 0 ->
     io:format("Benchmarking with array length ~p~n", [N]),
     Benchmark = fun(Fun) ->
-        {Time, _} = timer:tc(Fun, microsecond),
-        Time
+        {_Pid, Ref} = spawn_monitor(fun() ->
+            {Time, _} = timer:tc(Fun, []),
+            exit(Time)
+        end),
+        receive
+          {'DOWN', Ref, _, _, Time} -> Time
+        end
     end,
     ElapsedTimes = lists:map(
         fun(_I) ->
             List = generate_list(N),
             Marray = marray:from_list(List),
+            %% Assert the results match
+            true = (marray:to_list(benchmark_marray(marray:from_list(List), c_sort)) =:= benchmark_list(List)),
             [
-              Benchmark(fun() -> benchmark_marray(Marray) end),
+              Benchmark(fun() -> benchmark_marray(Marray, erlang) end),
+              Benchmark(fun() -> benchmark_marray(Marray, c_sort) end),
               Benchmark(fun() -> benchmark_list(List) end)
             ]
         end,
         lists:seq(1, R)
     ),
-    [MarrayTimes, ListTimes] = lists:foldr(
-        fun([MarrayTime, ListTime], [MarrayTimes, ListTimes]) ->
-            [[MarrayTime| MarrayTimes],[ListTime | ListTimes]]
+    [MarrayErlangTimes, MarrayCTimes, ListTimes] = lists:foldr(
+        fun([MarrayErlangTime, MarrayCTime, ListTime], [MarrayErlangTimes, MarrayCTimes, ListTimes]) ->
+            [[MarrayErlangTime | MarrayErlangTimes], [MarrayCTime | MarrayCTimes],[ListTime | ListTimes]]
         end,
-        [[], []],
+        [[], [], []],
         ElapsedTimes
     ),
-    MarrayAvg = lists:sum(MarrayTimes) / length(MarrayTimes),
+    MarrayErlangAvg = lists:sum(MarrayErlangTimes) / length(MarrayErlangTimes),
+    MarrayCAvg = lists:sum(MarrayCTimes) / length(MarrayCTimes),
     ListAvg = lists:sum(ListTimes) / length(ListTimes),
-    MarrayMax = lists:max(MarrayTimes),
+    MarrayErlangMax = lists:max(MarrayErlangTimes),
+    MarrayCMax = lists:max(MarrayCTimes),
     ListMax = lists:max(ListTimes),
-    MarrayMin = lists:min(MarrayTimes),
+    MarrayErlangMin = lists:min(MarrayErlangTimes),
+    MarrayCMin = lists:min(MarrayCTimes),
     ListMin = lists:min(ListTimes),
-    MarrayStdDev = math:sqrt(lists:sum(lists:map(fun(X) -> math:pow(X - MarrayAvg, 2) end, MarrayTimes)) / length(MarrayTimes)),
+    MarrayErlangStdDev = math:sqrt(lists:sum(lists:map(fun(X) -> math:pow(X - MarrayErlangAvg, 2) end, MarrayErlangTimes)) / length(MarrayErlangTimes)),
+    MarrayCStdDev = math:sqrt(lists:sum(lists:map(fun(X) -> math:pow(X - MarrayCAvg, 2) end, MarrayCTimes)) / length(MarrayCTimes)),
     ListStdDev = math:sqrt(lists:sum(lists:map(fun(X) -> math:pow(X - ListAvg, 2) end, ListTimes)) / length(ListTimes)),
-    MarrayStdDev1 = round(MarrayStdDev * 100) / 100,
+    MarrayErlangStdDev1 = round(MarrayErlangStdDev * 100) / 100,
+    MarrayCStdDev1 = round(MarrayCStdDev * 100) / 100,
     ListStdDev1 = round(ListStdDev * 100) / 100,
-    io:format("Marray: avg=~p, max=~p, min=~p, stddev=~p~n", [MarrayAvg, MarrayMax, MarrayMin, MarrayStdDev1]),
-    io:format("List:   avg=~p, max=~p, min=~p, stddev=~p~n", [ListAvg, ListMax, ListMin, ListStdDev1]),
+    io:format("Marray(erlang): avg=~p, max=~p, min=~p, stddev=~p~n", [MarrayErlangAvg, MarrayErlangMax, MarrayErlangMin, MarrayErlangStdDev1]),
+    io:format("Marray(c):      avg=~p, max=~p, min=~p, stddev=~p~n", [MarrayCAvg, MarrayCMax, MarrayCMin, MarrayCStdDev1]),
+    io:format("List:           avg=~p, max=~p, min=~p, stddev=~p~n", [ListAvg, ListMax, ListMin, ListStdDev1]),
     ok;
 benchmark(_, _) ->
     usage().
 
-benchmark_marray(Marray) ->
-    quicksort(Marray),
-    ok.
+benchmark_marray(Marray, erlang) ->
+    sort(Marray, marray:size(Marray));
+benchmark_marray(Marray, c_sort) ->
+    marray:sort(Marray).
 
-quicksort(Marray) ->
-    R = marray:size(Marray) - 1,
-    quicksort(Marray, 0, R).
+sort(Marray, 0) ->
+    Marray;
+sort(Marray, 1) ->
+    Marray;
+sort(Marray, 2) ->
+    Val1 = marray:get(Marray, 0),
+    Val2 = marray:get(Marray, 1),
+    case Val1 < Val2 of
+        true ->
+            Marray;
+        false ->
+            marray:swap(Marray, 0, 1)
+    end;
+sort(Marray, 3) ->
+    Val1 = marray:get(Marray, 0),
+    Val2 = marray:get(Marray, 1),
+    Val3 = marray:get(Marray, 2),
+    case Val1 < Val2 of
+        true ->
+            case Val2 < Val3 of
+                true ->
+                    Marray;
+                false ->
+                    case Val1 < Val3 of
+                        true ->
+                            marray:swap(Marray, 1, 2);
+                        false ->
+                            marray:swap(Marray, 0, 2)
+                    end
+            end;
+        false ->
+            case Val1 < Val3 of
+                true ->
+                    marray:swap(Marray, 0, 1);
+                false ->
+                    case Val2 < Val3 of
+                        true ->
+                            marray:swap(Marray, 0, 2);
+                        false ->
+                            marray:swap(Marray, 0, 1),
+                            marray:swap(Marray, 1, 2)
+                    end
+            end
+    end;
+sort(Marray, N) ->
+    quicksort(Marray, 0, N - 1).
 
 quicksort(Marray, L, R) when L < R ->
     PivotIndex = partition(Marray, L, R),
@@ -88,30 +146,62 @@ quicksort(Marray, _L, _R) ->
     Marray.
 
 partition(Marray, L, R) ->
-    Pivot = marray:get(Marray, R),
-    Indices = lists:seq(L, R - 1),
-    I = lists:foldr(
-        fun(Index, I) ->
-            Val = marray:get(Marray, Index),
-            case Val < Pivot of
+    Pivot = case R - L of
+        0 ->
+            marray:get(Marray, R);
+        1 ->
+            marray:get(Marray, R);
+        _ ->
+            P = L + round((R - L) / 2),
+            Val1 = marray:get(Marray, L),
+            Val2 = marray:get(Marray, P),
+            Val3 = marray:get(Marray, R),
+            case Val1 < Val2 of
                 true ->
-                    marray:swap(Marray, I + 1, Index),
-                    I + 1;
+                    case Val2 < Val3 of
+                        true ->
+                            marray:swap(Marray, P, R),
+                            Val2;
+                        false ->
+                            case Val1 < Val3 of
+                                true ->
+                                    Val3;
+                                false ->
+                                    marray:swap(Marray, L, R),
+                                    Val1
+                            end
+                    end;
                 false ->
-                    I
+                    case Val1 < Val3 of
+                        true ->
+                            marray:swap(Marray, L, R),
+                            Val1;
+                        false ->
+                            case Val2 < Val3 of
+                                true ->
+                                    marray:get(Marray, R);
+                                false ->
+                                    marray:swap(Marray, P, R),
+                                    Val2
+                            end
+                    end
             end
-        end,
-        L - 1,
-        Indices
-    ),
+    end,
+    I = partition(R, L, L - 1, Pivot, Marray),
     marray:swap(Marray, I + 1, R),
     I + 1.
 
-benchmark_list(List) ->
-    qsort(List),
-    ok.
+partition(R, L, I, Pivot, Marray) when L =< R ->
+    Val = marray:get(Marray, L),
+    case Val < Pivot of
+        true ->
+            marray:swap(Marray, I + 1, L),
+            partition(R, L + 1, I + 1, Pivot, Marray);
+        false ->
+            partition(R, L + 1, I, Pivot, Marray)
+    end;
+partition(_R, _L, I, _Pivot, _Marray) ->
+    I.
 
-qsort([]) ->
-    [];
-qsort([Pivot | T]) ->
-    qsort([X || X <- T, X < Pivot]) ++ [Pivot] ++ qsort([X || X <- T, X >= Pivot]).
+benchmark_list(List) ->
+    lists:sort(List).

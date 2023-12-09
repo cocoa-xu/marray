@@ -132,7 +132,7 @@ static ERL_NIF_TERM marray_set(ErlNifEnv *env, int argc,
   }
   if (index >= array->val->size()) {
     error = erlang::nif::error(env, "index out of bounds");
-    return error;
+    return enif_raise_exception(env, error);
   }
   array->val->_data[index] = argv[2];
 
@@ -156,10 +156,10 @@ static ERL_NIF_TERM marray_get(ErlNifEnv *env, int argc,
   }
   if (index >= array->val->size()) {
     error = erlang::nif::error(env, "index out of bounds");
-    return error;
+    return enif_raise_exception(env, error);
   }
 
-  return erlang::nif::ok(env, array->val->_data[index]);
+  return array->val->_data[index];
 }
 
 static ERL_NIF_TERM marray_swap(ErlNifEnv *env, int argc,
@@ -200,6 +200,23 @@ static ERL_NIF_TERM marray_size(ErlNifEnv *env, int argc,
   return enif_make_uint64(env, array->val->size());
 }
 
+static ERL_NIF_TERM marray_sort(ErlNifEnv *env, int argc,
+                               const ERL_NIF_TERM argv[]) {
+  ERL_NIF_TERM ret{};
+  ERL_NIF_TERM error{};
+  marray_res * array = nullptr;
+  if (!enif_get_resource(env, argv[0], marray_res::type, reinterpret_cast<void **>(&array)) ||
+      array == nullptr) {
+    error = erlang::nif::error(env, "cannot access Nif resource");
+    return enif_raise_exception(env, error);
+  }
+
+  std::sort(array->val->_data.begin(), array->val->_data.end(), [](ERL_NIF_TERM a, ERL_NIF_TERM b) {
+    return enif_compare(a, b) < 0;
+  });
+  return argv[0];
+}
+
 static int on_load(ErlNifEnv *env, void **, ERL_NIF_TERM) {
   ErlNifResourceType *rt;
   rt = enif_open_resource_type(env, "marray_nif", "marray",
@@ -222,6 +239,7 @@ static ErlNifFunc nif_functions[] = {
     {"marray_get", 2, marray_get, 0},
     {"marray_swap", 3, marray_swap, 0},
     {"marray_size", 1, marray_size, 0},
+    {"marray_sort", 1, marray_sort, 0}
 };
 
 ERL_NIF_INIT(marray_nif, nif_functions, on_load, on_reload, on_upgrade, NULL);

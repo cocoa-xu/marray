@@ -44,3 +44,6 @@ marray_swap(_Marray, _IndexI, _IndexJ) ->
 
 marray_size(_Marray) ->
     not_loaded(?LINE).
+
+marray_sort(_Marray) ->
+    not_loaded(?LINE).

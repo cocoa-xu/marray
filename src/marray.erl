@@ -11,7 +11,8 @@
     set/3,
     get/2,
     swap/3,
-    size/1
+    size/1,
+    sort/1
 ]).
 
 new(Capacity, DefaultVal) ->
@@ -41,3 +42,6 @@ swap(MArray, IndexI, IndexJ) ->
 
 size(MArray) ->
     marray_nif:marray_size(MArray).
+
+sort(MArray) ->
+    marray_nif:marray_sort(MArray).
