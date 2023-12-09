@@ -228,7 +228,7 @@ static ERL_NIF_TERM marray_reverse(ErlNifEnv *env, int argc,
     return enif_raise_exception(env, error);
   }
 
-  array->val->_data.reverse();
+  std::reverse(array->val->_data.begin(), array->val->_data.end());
   return argv[0];
 }
 
