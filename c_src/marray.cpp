@@ -102,15 +102,16 @@ public:
     using reference = ERL_NIF_TERM&;
 
   public:
-    MarrayIterator(marray * ptr = nullptr, size_t index = 0){
+    MarrayIterator(marray * ptr = nullptr, size_t index = 0) {
       m_ptr = ptr;
       m_index = index;
     }
     MarrayIterator(const MarrayIterator& iterator) = default;
+
     ~MarrayIterator(){}
 
     MarrayIterator& operator=(const MarrayIterator& iterator) = default;
-    MarrayIterator& operator=(marray * ptr){
+    MarrayIterator& operator=(marray * ptr) {
       m_ptr = ptr;
       m_index = 0;
       return (*this);
@@ -141,21 +142,23 @@ public:
       return (*this);
     }
 
-    MarrayIterator& operator++(){
+    MarrayIterator& operator++() {
       ++m_index;
       return (*this);
     }
-    MarrayIterator& operator--(){
+
+    MarrayIterator& operator--() {
       --m_index;
       return (*this);
     }
-    MarrayIterator operator++(int){
+
+    MarrayIterator operator++(int) {
       auto temp(*this);
       ++m_index;
       return temp;
     }
 
-    MarrayIterator operator--(int){
+    MarrayIterator operator--(int) {
       auto temp(*this);
       --m_index;
       return temp;
@@ -190,10 +193,6 @@ public:
     }
 
     element_t& operator*() {
-      return m_ptr->at(m_index);
-    }
-
-    const element_t& operator*() const {
       return m_ptr->at(m_index);
     }
 
