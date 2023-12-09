@@ -196,6 +196,10 @@ public:
       return m_ptr->at(m_index);
     }
 
+    element_t& operator*() const {
+      return m_ptr->at(m_index);
+    }
+
     marray * m_ptr;
     ssize_t m_index;
   };
