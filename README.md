@@ -29,7 +29,11 @@ ok = marray:swap(M2, 0, 7).
 
 [1,2,3,4,5,6,7,8] = marray:to_list(marray:sort(M2)).
 
-[1,4,7] = marray:to_list(marray:stride_view(M2, 3)).
+M3 = marray:stride_view(M2, 3).
+[1,4,7] = marray:to_list(M3).
+
+[7,4,1] = marray:to_list(marray:reverse(M3)).
+[1,4,7] = marray:to_list(marray:reverse(M3)).
 ```
 
 ## Quick Benchmark
