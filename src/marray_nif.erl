@@ -39,6 +39,9 @@ marray_set(_Marray, _Index, _Val) ->
 marray_get(_Marray, _Index) ->
     not_loaded(?LINE).
 
+marray_clone(_Marray) ->
+    not_loaded(?LINE).
+
 marray_swap(_Marray, _IndexI, _IndexJ) ->
     not_loaded(?LINE).
 
