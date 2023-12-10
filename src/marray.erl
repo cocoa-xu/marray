@@ -11,6 +11,7 @@
     to_list/1,
     set/3,
     get/2,
+    clone/1,
     swap/3,
     size/1,
     sort/1,
@@ -45,6 +46,9 @@ set(MArray, Index, Val) ->
 
 get(MArray, Index) ->
     marray_nif:marray_get(MArray, Index).
+
+clone(MArray) ->
+    marray_nif:marray_clone(MArray).
 
 swap(MArray, IndexI, IndexJ) ->
     marray_nif:marray_swap(MArray, IndexI, IndexJ).
@@ -157,6 +161,25 @@ stride_view_test() ->
     ?assertEqual(marray:to_list(M6), [1]),
     M7 = stride_view(M, -1),
     ?assertEqual(marray:size(M7), 5),
-    ?assertEqual(marray:to_list(M7), [5,4,3,2,1]).
+    ?assertEqual(marray:to_list(M7), [5, 4, 3, 2, 1]).
 
+stride_view_changes_parent_array_test() ->
+    List = [1, 2, 3, 4, 5],
+    M1 = from_list(List),
+    M2 = stride_view(M1, 2),
+    ?assertEqual(marray:to_list(M2), [1, 3, 5]),
+    marray:set(M2, 0, 2),
+    marray:set(M2, 1, 4),
+    marray:set(M2, 2, 6),
+    ?assertEqual(marray:to_list(M1), [2, 2, 4, 4, 6]).
+
+clone_test() ->
+    List = [1, 2, 3, 4, 5],
+    M1 = from_list(List),
+    M2 = clone(stride_view(M1, 2)),
+    ?assertEqual(marray:to_list(M2), [1, 3, 5]),
+    marray:set(M2, 0, 2),
+    marray:set(M2, 1, 4),
+    marray:set(M2, 2, 6),
+    ?assertEqual(marray:to_list(M1), [1, 2, 3, 4, 5]).
 -endif.

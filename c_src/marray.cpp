@@ -365,6 +365,31 @@ static ERL_NIF_TERM marray_get(ErlNifEnv *env, int argc,
   return array->val->at(index);
 }
 
+static ERL_NIF_TERM marray_clone(ErlNifEnv *env, int argc,
+                                 const ERL_NIF_TERM argv[]) {
+    ERL_NIF_TERM ret{};
+    ERL_NIF_TERM error{};
+    marray_res * array = nullptr;
+    if (!enif_get_resource(env, argv[0], marray_res::type, reinterpret_cast<void **>(&array)) ||
+        array == nullptr) {
+      error = erlang::nif::error(env, "cannot access Nif resource");
+      return enif_raise_exception(env, error);
+    }
+    
+    marray_res * res = static_cast<marray_res *>(enif_alloc_resource(marray_res::type, sizeof(marray_res)));
+    if (res == nullptr) {
+      error = erlang::nif::error(env, "cannot allocate Nif resource");
+      return enif_raise_exception(env, error);
+    }
+    
+    res->val = new marray(array->val->size());
+    std::copy(array->val->begin(), array->val->end(), res->val->begin());
+    
+    ret = enif_make_resource(env, res);
+    enif_release_resource(res);
+    return ret;
+}
+
 static ERL_NIF_TERM marray_swap(ErlNifEnv *env, int argc,
                                const ERL_NIF_TERM argv[]) {
   ERL_NIF_TERM ret{};
@@ -483,6 +508,7 @@ static ErlNifFunc nif_functions[] = {
     {"marray_to_list", 1, marray_to_list, 0},
     {"marray_set", 3, marray_set, 0},
     {"marray_get", 2, marray_get, 0},
+    {"marray_clone", 1, marray_clone, 0},
     {"marray_swap", 3, marray_swap, 0},
     {"marray_size", 1, marray_size, 0},
     {"marray_sort", 1, marray_sort, 0},
